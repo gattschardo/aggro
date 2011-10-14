@@ -1,0 +1,75 @@
+aggro - Artificial Plant Growth
+
+Specification
+
+aggro is an erlang module that helps you simulate artificial random growth of
+plants in a 2d-plain according to rules specified by you. It includes example
+rules for growing a tree.
+
+Interface
+
+new/1
+shine/2
+grow/1
+to_list/1
+to_tree/1
+
+new([rules()]) -> plant()
+
+rules() = {char() sym, integer() cost, real() block, char() end, [children()]}
+children() = {char() sym, {integer() dx, integer() dy}}
+plant() = implementation dependant
+
+creates a new plant that will grow from the given set of rules. It must contain
+at least one rule, and the first rule will be the initial stem positioned at
+{0,0}. Each rule is a 5-tuple with the following elements:
+
+sym	a single character (preferably printable) which will be used to
+	identify the type of this branch (and may also be used for printing).
+	Sym characters need to be unique.
+
+cost	an integer that represents the nutrition cost of growing this kind of
+	branch.
+
+block	a real number between 0 and 1 that defines which portion of sunlight
+	will be consumed by this kind of branch (str*block) and which will shine
+	through on lower branches (str*(1-block)).
+
+end	a sym character into which this branch grows, when it determines that
+	it is stuck in a dead end.
+
+[Children] is a list of other branch that can grow of off this one. Each
+element must be a 2-tuple containing:
+
+sym	the type of child branch
+
+{DX,DY}	the coordinate offset where it grows (e.g. {0,1} for directly above).
+
+shine(integer() strength, plant()) -> plant()
+
+lets the sun shine down from the sky (highest y coordinates) onto the plant.
+All branches that are in direct contact with the sky will receive nutrition
+according to their block factor. Lower branches can only receive nutrition that
+has not been blocked (and received) by highter branches, yet. The return value
+will be the new plant with updated nutrition values.
+
+grow(plant()) -> plant()
+
+lets plant use its nutrition to grow branches. Each branch, starting from the
+stem, will try to grow one child branch. If it has not received enough food to
+grow one, it will save it's food and wait for the next period of growth.
+Otherwise it will grow one child branch and then wait for the next period of
+growth. If there is no space for growing a child branch, it will either
+distribute it's food equally to already existing children, or, if it has none,
+turn into a branch of type end. The return value will be the new plant with all
+branches grown.
+
+to_list(plant()) -> [{{integer() X, integer() Y}, character() sym}]
+
+returns all branches as their syms with their coordinates in a list.
+
+to_tree(plant()) -> [Node()],
+
+Node() = {char() sym, [Node() children]}
+
+returns the plant as a tree of syms, starting from the initial stem.
