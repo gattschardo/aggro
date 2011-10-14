@@ -13,6 +13,7 @@ shine/2
 grow/1
 to_list/1
 to_tree/1
+demo/0
 
 new([rules()]) -> plant()
 
@@ -73,3 +74,7 @@ to_tree(plant()) -> [Node()],
 Node() = {char() sym, [Node() children]}
 
 returns the plant as a tree of syms, starting from the initial stem.
+
+demo() -> plant()
+
+returns a new plant according to a sample ruleset for growing a tree.
