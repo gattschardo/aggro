@@ -77,9 +77,6 @@ int main()
     } while (c != 'q');
 
     quit_tree(in);
-
-    puts("bye");
-
   } else {
     close(STDOUT_FILENO);
     dup(out_p[1]);
@@ -142,7 +139,7 @@ void draw_tree(int n, struct leaf *ls)
   int i;
   for (i = 0; i < n; i++, ls++) {
     int x,y;
-    x = ls->x + COLS/2;
+    x = ls->x + COLS/2 - 1;
     y = LINES - ls->y - 1;
     mvaddch(y, x, ls->sym);
   }

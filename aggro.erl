@@ -23,6 +23,8 @@
 % ------
 
 new(Rules) when is_list(Rules) ->
+  {A0,A1,A2}=now(),
+  random:seed(A0,A1,A2),
   {Sym,_,_,_,_}=hd(Rules),
   {add_branch(Sym,{0,0},dict:new()),{0,0,0,0},rules_to_dict(Rules)}.
 
