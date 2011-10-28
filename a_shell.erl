@@ -2,7 +2,7 @@
 
 -export([start/0]).
 
--define(PROMPT,"> ").
+-define(PROMPT,"").
 -define(SUN,2).
 
 start() ->

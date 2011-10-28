@@ -1,21 +1,30 @@
-#define _POSIX_SOURCE
-#define _BSD_SOURCE
+#define _POSIX_SOURCE   /* fdopen()     */
+#define _BSD_SOURCE     /* upsleep()    */
 
-#include <sys/types.h>
-#include <unistd.h>
-#include <curses.h>
-#include <signal.h>
-#include <string.h>
+#include <sys/types.h>  /* pid_t        */
+#include <stdlib.h>     /* exit()       */
+#include <unistd.h>     /* syscalls     */
+#include <curses.h>     /* curses       */
+#include <signal.h>     /* kill()       */
+#include <string.h>     /* strlen()     */
 
-#define SIZE 20
+struct leaf {
+  int x;
+  int y;
+  char sym;
+};
+
+struct leaf *read_tree(FILE *in, FILE *out, int *n);
+void next_tree(FILE *in);
+void prev_tree(FILE *in);
+void quit_tree(FILE *in);
+
+void draw_tree(int n, struct leaf *ls);
 
 int main()
 {
-  char buf[BUFSIZ];
   int in_p[2], out_p[2];
-  /*
   FILE *in, *out;
-  */
   pid_t pid;
 
   pipe(in_p);
@@ -23,47 +32,54 @@ int main()
 
   pid = fork();
   if (pid > 0) {
-    printf("parent process: child has pid %d, buffer size: %d\n", pid, BUFSIZ);
+    /*printf("parent process: child has pid %d, buffer size: %d\n", pid, BUFSIZ);*/
     close(in_p[0]);
     close(out_p[1]);
 
-    /*
     in  = fdopen(in_p[1], "w");
-    if (!in)
+    if (!in) {
       perror("fdopen");
-
-    setvbuf(in, 0, _IOLBF, SIZE);
-    out = fdopen(out_p[0], "r");
-    if (!out)
-      perror("fdopen");
-
-    setvbuf(out, 0, _IOLBF, SIZE);
-    */
-
-    read(out_p[0],buf,BUFSIZ);
-    fputs(buf, stdout);
-
-    while (1) {
-      fgets(buf, BUFSIZ, stdin);
-      /*
-      fputs(buf, in);
-      */
-      write(in_p[1],buf,strlen(buf));
-      usleep(10000);
-      /*
-      fgets(buf, SIZE, out);
-      */
-      read(out_p[0],buf,BUFSIZ);
-      fputs(buf, stdout);
+      exit(1);
     }
+    setvbuf(in, 0, _IOLBF, BUFSIZ);
 
-    kill(pid, 9);
+    out = fdopen(out_p[0], "r");
+    if (!out) {
+      perror("fdopen");
+      exit(1);
+    }
+    setvbuf(out, 0, _IOLBF, BUFSIZ);
+
+    initscr();
+    atexit((void (*)(void))endwin);
+    noecho();
+
+    int c, n;
+    struct leaf *ls;
+    ls = read_tree(in, out, &n);
+    draw_tree(n, ls);
+    free(ls);
+    do {
+      c = getch();
+      switch(c) {
+      case 'n':
+      case 'j':
+        next_tree(in);
+        break;
+      case 'p':
+      case 'k':
+        prev_tree(in);
+        break;
+      }
+      ls = read_tree(in, out, &n);
+      draw_tree(n, ls);
+      free(ls);
+    } while (c != 'q');
+
+    quit_tree(in);
+
     puts("bye");
 
-    /*
-    initscr();
-    atexit(endwin);
-    */
   } else {
     close(STDOUT_FILENO);
     dup(out_p[1]);
@@ -76,11 +92,63 @@ int main()
     close(in_p[1]);
 
     execl("/usr/bin/erl", "/usr/bin/erl", "-noshell", "-s", "a_shell", "-s", "init", "stop", 0);
-    /*execl("/bin/echo", "/bin/echo", "hallo", "welt", (char *) 0);*/
-    /*execl("/bin/cat", "/bin/cat", (char *) 0);*/
   }
 
   return 0;
 }
 
-/* vim: se ai sts=2 sw=2 et: */
+struct leaf *read_tree(FILE *in, FILE *out, int *n)
+{
+  char buf[BUFSIZ];
+
+  fputs("p\n", in);
+  usleep(10000);
+  fgets(buf, BUFSIZ, out);
+  sscanf(buf, "%d\n", n);
+
+  struct leaf *r, *l;
+  r = l = calloc(sizeof(struct leaf), *n);
+
+  int i;
+  for (i = 0; i < *n; i++) {
+    fgets(buf, BUFSIZ, out);
+    sscanf(buf, "%d %d %c\n", &l->x, &l->y, &l->sym);
+    l++;
+  }
+
+  return r;
+}
+
+void next_tree(FILE *in)
+{
+  fputs("j\n", in);
+}
+
+void prev_tree(FILE *in)
+{
+  fputs("k\n", in);
+}
+
+void quit_tree(FILE *in)
+{
+  fputs("q\n", in);
+  sleep(1);
+}
+
+void draw_tree(int n, struct leaf *ls)
+{
+  clear();
+
+  int i;
+  for (i = 0; i < n; i++, ls++) {
+    int x,y;
+    x = ls->x + COLS/2;
+    y = LINES - ls->y - 1;
+    mvaddch(y, x, ls->sym);
+  }
+
+  move(0,0);
+  refresh();
+}
+
+/* vim: se ai sts=3 sw=2 et: */
