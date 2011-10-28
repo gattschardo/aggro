@@ -13,10 +13,10 @@ shell(Sun,[Last|_]=Past,[]) ->
 shell(Sun,Past,[Now|Future]=F) ->
   Cmd=io:get_line(?PROMPT),
   case hd(Cmd) of
-    $p ->
+    $p -> % print
       print(aggro:to_list(Now)),
       shell(Sun,Past,F);
-    $k ->
+    $k -> % next
       if
         Past == [] ->
           io:put_chars(standard_error,"Cannot go past generation 0\n"),
@@ -24,10 +24,12 @@ shell(Sun,Past,[Now|Future]=F) ->
         Past /= [] ->
           shell(Sun,tl(Past),[hd(Past)|F])
       end;
-    $j ->
+    $j -> % previous
       shell(Sun,[Now|Past],Future);
-    $q ->
+    $q -> % quit
       Now;
+    $n -> % new
+      start();
     _Any ->
       io:put_chars(standard_error,"unknown input, use pkjq\n"),
       shell(Sun,Past,F)

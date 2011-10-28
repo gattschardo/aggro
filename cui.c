@@ -18,6 +18,7 @@ struct leaf *read_tree(FILE *in, FILE *out, int *n);
 void next_tree(FILE *in);
 void prev_tree(FILE *in);
 void quit_tree(FILE *in);
+void new_tree(FILE *in);
 
 void draw_tree(int n, struct leaf *ls);
 
@@ -69,6 +70,9 @@ int main()
       case 'p':
       case 'k':
         prev_tree(in);
+        break;
+      case 'r':
+        new_tree(in);
         break;
       }
       ls = read_tree(in, out, &n);
@@ -126,6 +130,11 @@ void prev_tree(FILE *in)
   fputs("k\n", in);
 }
 
+void new_tree(FILE *in)
+{
+  fputs("n\n", in);
+}
+
 void quit_tree(FILE *in)
 {
   fputs("q\n", in);
@@ -144,7 +153,7 @@ void draw_tree(int n, struct leaf *ls)
     mvaddch(y, x, ls->sym);
   }
 
-  move(0,0);
+  move(LINES-1,COLS-1);
   refresh();
 }
 
