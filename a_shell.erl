@@ -42,3 +42,5 @@ print(L) ->
       io:format("~w ~w ~c~n",[X,Y,C])
   end,
   lists:foreach(F,L).
+
+% vim: se ai sts=2 sw=2 et:

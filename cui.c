@@ -7,11 +7,15 @@
 #include <signal.h>
 #include <string.h>
 
+#define SIZE 20
+
 int main()
 {
   char buf[BUFSIZ];
   int in_p[2], out_p[2];
-  /*FILE *in, *out;*/
+  /*
+  FILE *in, *out;
+  */
   pid_t pid;
 
   pipe(in_p);
@@ -19,7 +23,7 @@ int main()
 
   pid = fork();
   if (pid > 0) {
-    printf("parent process: child has pid %d\n",pid);
+    printf("parent process: child has pid %d, buffer size: %d\n", pid, BUFSIZ);
     close(in_p[0]);
     close(out_p[1]);
 
@@ -27,20 +31,28 @@ int main()
     in  = fdopen(in_p[1], "w");
     if (!in)
       perror("fdopen");
+
+    setvbuf(in, 0, _IOLBF, SIZE);
     out = fdopen(out_p[0], "r");
     if (!out)
       perror("fdopen");
-      */
-    puts("hello");
 
-    read(out_p[0],buf,5);
+    setvbuf(out, 0, _IOLBF, SIZE);
+    */
+
+    read(out_p[0],buf,BUFSIZ);
     fputs(buf, stdout);
+
     while (1) {
       fgets(buf, BUFSIZ, stdin);
-      /*fputs(buf, in);*/
+      /*
+      fputs(buf, in);
+      */
       write(in_p[1],buf,strlen(buf));
       usleep(10000);
-      /*fgets(buf, 5, out);*/
+      /*
+      fgets(buf, SIZE, out);
+      */
       read(out_p[0],buf,BUFSIZ);
       fputs(buf, stdout);
     }
@@ -70,3 +82,5 @@ int main()
 
   return 0;
 }
+
+/* vim: se ai sts=2 sw=2 et: */

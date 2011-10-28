@@ -4,7 +4,7 @@
 
 %-compile(export_all).
 
-% blarg
+% aggro
 % -----
 
 % a plant is represented like so:
