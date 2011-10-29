@@ -6,33 +6,62 @@
 -define(SUN,2).
 
 start() ->
-  shell(?SUN,[],[aggro:demo()]).
+  new(demo).
 
-shell(Sun,[Last|_]=Past,[]) ->
-  shell(Sun,Past,[season(Sun,Last)]);
-shell(Sun,Past,[Now|Future]=F) ->
+new(demo) ->
+  shell(demo,?SUN,[],[aggro:demo()]);
+new(Rules) ->
+  shell(Rules,?SUN,[],[aggro:new(Rules)]).
+
+shell(Rs,Sun,[Last|_]=Past,[]) ->
+  shell(Rs,Sun,Past,[season(Sun,Last)]);
+shell(Rs,Sun,Past,[Now|Future]=F) ->
   Cmd=io:get_line(?PROMPT),
   case hd(Cmd) of
     $p -> % print
       print(aggro:to_list(Now)),
-      shell(Sun,Past,F);
+      shell(Rs,Sun,Past,F);
     $k -> % next
       if
         Past == [] ->
-          io:put_chars(standard_error,"Cannot go past generation 0\n"),
-          shell(Sun,Past,F);
+          io:put_chars(standard_error,"cannot go past generation 0\n"),
+          shell(Rs,Sun,Past,F);
         Past /= [] ->
-          shell(Sun,tl(Past),[hd(Past)|F])
+          shell(Rs,Sun,tl(Past),[hd(Past)|F])
       end;
     $j -> % previous
-      shell(Sun,[Now|Past],Future);
+      shell(Rs,Sun,[Now|Past],Future);
     $q -> % quit
       Now;
     $n -> % new
-      start();
+      new(Rs);
+    $r -> % read rules
+      Ts=string:tokens(Cmd," \n"),
+      case length(Ts) of
+        2 ->
+          case file:consult(RF=lists:nth(2,Ts)) of
+            {ok,Rules} ->
+              case aggro:check_rules(Rules) of
+                ok ->
+                  new(Rules);
+                {error,E} ->
+                  io:format(standard_error,
+                    "error in rules file `~s': ~w~n",[RF,E]),
+                  shell(Rs,Sun,Past,F)
+              end;
+            _Error ->
+              io:format(standard_error,
+                "cannot read rules from file `~s'~n",[RF]),
+              shell(Rs,Sun,Past,F)
+          end;
+        _Any ->
+          io:format(standard_error,
+            "invalid command `~s', use `r filename'~n",[Cmd]),
+          shell(Rs,Sun,Past,F)
+      end;
     _Any ->
-      io:put_chars(standard_error,"unknown input, use pkjq\n"),
-      shell(Sun,Past,F)
+      io:put_chars(standard_error,"unknown input, use pkjqnr\n"),
+      shell(Rs,Sun,Past,F)
   end.
 
 season(Sun,Plant) ->

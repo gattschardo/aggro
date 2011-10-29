@@ -1,6 +1,6 @@
 -module(aggro).
 
--export([new/1, shine/2, grow/1, to_list/1, to_tree/1, demo/0]).
+-export([new/1, shine/2, grow/1, to_list/1, to_tree/1, demo/0, check_rules/1]).
 
 %-compile(export_all).
 
@@ -69,6 +69,12 @@ demo() ->
       {$/,C,B,E,[{$\\,{0,1}},{$|,{1,1}},{$/,{1,1}},{$_,{1,1}}]},
       {$_,C,B,E,[{$_,{-1,0}},{$\\,{-1,0}},{$|,{-1,0}},{$|,{1,0}},{$/,{1,0}},{$_,{1,0}}]},
       {$O,0,B,E,[]}]).
+
+check_rules(Rules) ->
+  case catch assert_rules(Rules) of
+    {'EXIT',Err} -> {error,Err};
+    _Ok -> ok
+  end.
 
 % private
 % -------
@@ -201,5 +207,31 @@ add_branch(Sym,{X,Y},Store) ->
   end,
   NYS=dict:store(X,{Sym,true,0,[]},YS),
   dict:store(Y,NYS,Store).
+
+assert_rules(Rules) ->
+  F=fun({Sym,Cost,Block,End,Cs}) ->
+      true=is_integer(Sym),
+      true=Sym > 0,
+      true=is_integer(Cost) or is_float(Cost),
+      true=is_integer(Block) or is_float(Block),
+      true=Block >= 0,
+      true=Block =< 1,
+      true=is_integer(End),
+      case lists:keyfind(End,1,Rules) of
+        false -> exit({"bad end sym",End});
+        _T -> ok
+      end,
+      true=is_list(Cs),
+      Fi=fun({CSym,{CX,CY}}) ->
+          true=is_integer(CX),
+          true=is_integer(CY),
+          case lists:keyfind(CSym,1,Rules) of
+            false -> exit({"bad child sym",CSym});
+            _Ti -> ok
+          end; (Other) -> exit({"bad child",Other})
+      end,
+      lists:map(Fi,Cs)
+  end,
+  lists:map(F,Rules).
 
 % vim: se ai sts=2 sw=2 et:

@@ -2,11 +2,10 @@
 #define _BSD_SOURCE     /* upsleep()    */
 
 #include <sys/types.h>  /* pid_t        */
-#include <stdlib.h>     /* exit()       */
+#include <stdlib.h>     /* malloc/free  */
 #include <unistd.h>     /* syscalls     */
 #include <curses.h>     /* curses       */
-#include <signal.h>     /* kill()       */
-#include <string.h>     /* strlen()     */
+#include <fcntl.h>      /* open() flags */
 
 struct leaf {
   int x;
@@ -15,6 +14,7 @@ struct leaf {
 };
 
 struct leaf *read_tree(FILE *in, FILE *out, int *n);
+void init_tree(FILE *in, char *rfile);
 void next_tree(FILE *in);
 void prev_tree(FILE *in);
 void quit_tree(FILE *in);
@@ -22,10 +22,26 @@ void new_tree(FILE *in);
 
 void draw_tree(int n, struct leaf *ls);
 
-int main()
+int main(int argc, char **argv)
 {
+  int st;
+  char *rfile;
+
+  if (argc > 2) {
+    printf("usage: %s [rulefile]\n", argv[0]);
+  } else if (argc == 2) {
+    st = open(argv[1], O_RDONLY);
+    if (st >= 0) {
+      rfile = argv[1];
+    } else {
+      fprintf(stderr, "cannot open rule file `%s'\n", argv[1]);
+      exit(EXIT_FAILURE);
+    }
+  } else {
+    rfile = 0;
+  }
+
   int in_p[2], out_p[2];
-  FILE *in, *out;
   pid_t pid;
 
   pipe(in_p);
@@ -33,10 +49,10 @@ int main()
 
   pid = fork();
   if (pid > 0) {
-    /*printf("parent process: child has pid %d, buffer size: %d\n", pid, BUFSIZ);*/
     close(in_p[0]);
     close(out_p[1]);
 
+    FILE *in, *out;
     in  = fdopen(in_p[1], "w");
     if (!in) {
       perror("fdopen");
@@ -55,6 +71,9 @@ int main()
     atexit((void (*)(void))endwin);
     noecho();
 
+    if (rfile)
+      init_tree(in, rfile);
+
     int c, n;
     struct leaf *ls;
     ls = read_tree(in, out, &n);
@@ -65,10 +84,14 @@ int main()
       switch(c) {
       case 'n':
       case 'j':
+      case KEY_RIGHT:
+      case KEY_DOWN:
         next_tree(in);
         break;
       case 'p':
       case 'k':
+      case KEY_LEFT:
+      case KEY_UP:
         prev_tree(in);
         break;
       case 'r':
@@ -92,10 +115,16 @@ int main()
     close(in_p[0]);
     close(in_p[1]);
 
+    int err_fd;
+    err_fd = open("errors.log", O_CREAT|O_WRONLY, 0666);
+    close(STDERR_FILENO);
+    dup(err_fd);
+    close(err_fd);
+
     execl("/usr/bin/erl", "/usr/bin/erl", "-noshell", "-s", "a_shell", "-s", "init", "stop", 0);
   }
 
-  return 0;
+  return EXIT_SUCCESS;
 }
 
 struct leaf *read_tree(FILE *in, FILE *out, int *n)
@@ -118,6 +147,11 @@ struct leaf *read_tree(FILE *in, FILE *out, int *n)
   }
 
   return r;
+}
+
+void init_tree(FILE *in, char *rfile)
+{
+  fprintf(in, "r %s\n", rfile);
 }
 
 void next_tree(FILE *in)
