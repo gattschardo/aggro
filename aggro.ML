@@ -40,8 +40,10 @@ sig
   (* to_list returns a flat list of all branches in p *)
   val to_list : plant -> child list
 
-  (* to_tree TODO *)
-  (*val to_tree : plant -> TODO *)
+  datatype tree = Node of symbol * (tree list)
+
+  (* to_tree returns the tree of symbols in p *)
+  val to_tree : plant -> tree
 
   (* demo is a demo plant *)
   val demo : plant
@@ -117,7 +119,10 @@ struct
           SOME _ => true)
 
   (* growth related *)
-  fun growth_options (x, y) s f bs rs =
+  (* path is pos * cost * symbol *)
+  datatype path = Path of pos * real * symbol
+
+  fun growth_paths (x, y) s f bs rs =
     let
       val Rule (cost, _, _, cs) = DR.fetch s rs
       fun func (Child (cs, (cx, cy)), a as (r, _)) =
@@ -130,7 +135,7 @@ struct
             (if cost > floor f then
               (r, true)
              else
-              ((np, f - real cost, cs)::r, true))
+              (Path (np, f - real cost, cs)::r, true))
         end
     in
       foldl func ([], false) cs
@@ -139,10 +144,10 @@ struct
   fun min a b = Int.min (a, b)
   fun max a b = Int.max (a, b)
 
-  fun grow_branch opts pos bs s cs (min_x, max_x, min_y, max_y) rs =
+  fun grow_branch paths pos bs s cs (min_x, max_x, min_y, max_y) rs =
     let
-      val l = length opts
-      val (cpos as (cx, cy), f, csym) = hd opts (* TODO randomize *)
+      val l = length paths
+      val Path (cpos as (cx, cy), f, csym) = hd paths (* TODO randomize *)
       val cg = (l > 1)
       val bsp = put_branch pos bs (Branch (s, cg, f, cpos::cs))
       val bsc = add_branch csym cpos bsp
@@ -162,16 +167,16 @@ struct
   fun rules_to_dict rules =
     foldl (fn ((s, r), d) => DR.store s r d) DR.new rules
 
-  (*
+  datatype tree = Node of symbol * (tree list)
+
   fun insert_children pos bs =
     let
       val Branch (s, _, _, cs) = get_branch pos bs
       fun f (p, r) =
         insert_children p bs::r
     in
-      (s, foldl f [] cs)
+      Node (s, foldl f [] cs)
     end
-  *)
 
   fun distribute_food fo cs ibs =
     let
@@ -195,12 +200,12 @@ struct
         end
     | update pos (Branch (s, true, f, cs)) (p as Plant (bs, m, rs)) =
         let
-          val (go, cg) = growth_options pos s f bs rs
+          val (gps, cg) = growth_paths pos s f bs rs
         in
           if cg then
-            (case go of
+            (case gps of
               [] => p |
-              opts => grow_branch opts pos bs s cs m rs)
+              _ => grow_branch gps pos bs s cs m rs)
           else
             (case cs of
               [] => Plant (grow_end pos s f bs rs, m, rs) |
@@ -280,9 +285,9 @@ struct
       DY.fold fy [] bs
     end
 
-  (* to_tree TODO *)
-  (*fun to_tree (Plant (bs, _, _)) =
-    insert_children zero_pos bs*)
+  (* to_tree returns the tree of symbols in p *)
+  fun to_tree (Plant (bs, _, _)) =
+    insert_children zero_pos bs
 
   (* demo is a demo plant *)
   val demo =
