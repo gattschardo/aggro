@@ -5,27 +5,13 @@ sig
 
   type pos = int * int
 
-  (* space is min-x * max-x * min-y * max-y *)
-  type space = int * int * int * int
-
-  structure DX : DICT
-  structure DY : DICT
-
-  type branch_store
-  type rule_store
-
   (* child is symbol * pos *)
   datatype child = Child of symbol * pos
 
   (* rule is cost * block * end * children *)
   datatype rule = Rule of int * real * symbol * (child list)
 
-  (* branch is symbol * can-grow * food * children *)
-  datatype branch = Branch of symbol * bool * real * (pos list)
-
-  (* plant is branch-store * space * rules *)
-  datatype plant = Plant of branch_store * space * rule_store
-
+  type plant
 
   (** functions **)
   (* new creates plant from rules *)
