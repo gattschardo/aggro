@@ -19,10 +19,10 @@ sig
 
   val store : k -> v -> t -> t
   (*val append
-  val append_list
-  val update
-  val update'
-  val update_counter*)
+  val append_list*)
+  val update : k -> (v -> v) -> t -> t
+  val update' : k -> (v -> v) -> v -> t -> t
+  (*val update_counter*)
 
   val fold : ((k * v * 'a) -> 'a) -> 'a -> t -> 'a
   (*val map
@@ -73,6 +73,22 @@ struct
       SOME v => v
   
   fun store k v d = (k, v)::d
+
+  fun update k f d =
+    let
+      val v = fetch k d
+    in
+      store k (f v) d
+    end
+
+  fun update' k f v0 d =
+    let
+      val v = case find k d of
+                SOME v => v |
+                NONE => v0
+    in
+      store k (f v) d
+    end
 
   fun fold f a d =
     foldl (fn ((k, v), a) => f (k,v,a)) a d
